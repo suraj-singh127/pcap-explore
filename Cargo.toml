@@ -1,0 +1,11 @@
+[package]
+name = "pcap-explore"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libpcap = "0.1.7"
+libc = "0.2.146"
+pcap = "0.5"
