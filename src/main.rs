@@ -1,6 +1,6 @@
-use pcap::{Device};
-extern crate rawsock;
-use rawsock::open_best_library;
+use std::fmt::Debug;
+use pcap::{Device, Capture};
+
 
 fn main() {
     pub struct CapturePacket {
@@ -21,6 +21,7 @@ fn main() {
             match list {
                 Ok(devices) => {
                     for device in devices {
+                        print!("Name - {}",device.name);
                         match device.desc {
                             Some(desc) => print!("{}", desc),
                             None => print!("Description not available"),
@@ -47,31 +48,22 @@ fn main() {
         }
 
         pub fn print_to_console(&self) {
-            let devices_list = Device::list();
-            match devices_list {
-                Ok(devices) => {
-                    print!("Capturing Packets from - {:?}", devices[4]);
-                }
-                Err(err) => {eprintln!("{}",err)}
+            let device_name = r"\Device\NPF_{4B9201ED-543E-41F2-9602-03F282DDE5D5}";
+            let cap2 = Capture::from_device(device_name).expect("error capturing");
+            let mut cap_handle = cap2.promisc(true).snaplen(5000).timeout(10000).open().unwrap();
+            let data_links = cap_handle.list_datalinks().expect("could not find");
+            for links in data_links{
+                println!("{:?}",links);
+            }
+            while let Ok(packet) = cap_handle.next() {
+                let data = packet.data;
+                println!("{:?}",packet.header);
             }
         }
+        
     }
-    // let capture_packets = CapturePacket::new();
-    // capture_packets.print_devices();
-    // capture_packets.print_to_console();
-
-    println!("Opening packet capturing library");
-    let lib = open_best_library().expect("Could not open any packet capturing library");
-    println!("Library opened, version is {}", lib.version());
-    let interf_name = "Wi-fi"; //replace with whatever is available on your platform
-    println!("Opening the {} interface", interf_name);
-    let mut interf = lib.open_interface(&interf_name).expect("Could not open network interface");
-    println!("Interface opened, data link: {}", interf.data_link());
-
-    println!("Receiving 5 packets:");
-    for _ in 0..5 {
-        let packet = interf.receive().expect("Could not receive packet");
-        println!("Received packet: {}", packet);
-    }
+    let capture_packets = CapturePacket::new();
+    capture_packets.print_devices();
+    capture_packets.print_to_console();
 
 }

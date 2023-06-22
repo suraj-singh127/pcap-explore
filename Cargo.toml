@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 pcap = "0.5"
-rawsock = "0.3.0"
+pktparse = "0.7.1"
