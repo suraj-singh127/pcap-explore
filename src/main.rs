@@ -1,5 +1,6 @@
-use pcap::{Active, Capture, Device};
-use libpcap;
+use pcap::{Device};
+extern crate rawsock;
+use rawsock::open_best_library;
 
 fn main() {
     pub struct CapturePacket {
@@ -50,11 +51,27 @@ fn main() {
             match devices_list {
                 Ok(devices) => {
                     print!("Capturing Packets from - {:?}", devices[4]);
-                    
                 }
                 Err(err) => {eprintln!("{}",err)}
             }
         }
+    }
+    // let capture_packets = CapturePacket::new();
+    // capture_packets.print_devices();
+    // capture_packets.print_to_console();
+
+    println!("Opening packet capturing library");
+    let lib = open_best_library().expect("Could not open any packet capturing library");
+    println!("Library opened, version is {}", lib.version());
+    let interf_name = "Wi-fi"; //replace with whatever is available on your platform
+    println!("Opening the {} interface", interf_name);
+    let mut interf = lib.open_interface(&interf_name).expect("Could not open network interface");
+    println!("Interface opened, data link: {}", interf.data_link());
+
+    println!("Receiving 5 packets:");
+    for _ in 0..5 {
+        let packet = interf.receive().expect("Could not receive packet");
+        println!("Received packet: {}", packet);
     }
 
 }
