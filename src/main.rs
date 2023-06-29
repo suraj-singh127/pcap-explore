@@ -1,8 +1,21 @@
 use pcap::{Device, Capture};
 use pktparse::{*, tcp::TcpHeader, udp::UdpHeader, ipv4::IPv4Header, ipv6::IPv6Header, arp::ArpPacket, ethernet::{EtherType, EthernetFrame}, ip::IPProtocol};
 use tls_parser::TlsMessage;
+use clap::{Parser};
+
 
 fn main() {
+
+    #[derive(Parser)]
+    #[command(name = "sniffit")]
+    #[command(version = "1.0")]
+    #[command(about = "Capturing packets from interface.")]
+    pub struct Cli{
+        arg1 : Option<String>,
+        arg2 : Option<String>,
+        arg3 : Option<String>,
+    }
+
     pub struct CapturePacket {
         err_count: u64,
     }
@@ -19,11 +32,12 @@ fn main() {
             println!("\n====================================================");
             //print the  list of devices found
             print!("List of Devices found - \n\n");
+            let mut serial = 1;
             match list {
                 //if the devices are found
                 Ok(devices) => {
                     for device in devices {
-                        print!("Device ID - {}\n",device.name);
+                        print!("{} Device ID - {}\n",serial, device.name);
                         //matching device desc option string
                         match device.desc {
                             //if there is device description
@@ -31,24 +45,57 @@ fn main() {
                             //No description availaible
                             None => println!("Description not available"),
                         }
+                        serial = serial + 1;
                         println!()
                     }
                 }
                 //if an error occurs
                 Err(error) => println!("Error: {}", error),
             }
-            println!("\n====================================================");
+            println!("\n=======================================================");
+            println!("To capture packets from a device - cargo run capture [device_serial number]");
         }
 
-        pub fn print_to_console(&self) {
-            let device_name = r"\Device\NPF_{4B9201ED-543E-41F2-9602-03F282DDE5D5}";
-            let device_name_ethernet = r"\Device\NPF_{F4700D1E-F483-4027-8B32-43E9A334654B}";
-            let cap2 = Capture::from_device(device_name).expect("error capturing");
+        pub fn print_to_console(&self , device_number:u8) {
+
+            let mut device_name = String::from("");
+            let mut device_description = "".to_string();
+
+            let list = Device::list();
+            let mut serial = 1;
+            match list {
+                Ok(devices) => {
+                    device_name = devices[0].name.clone();
+                    device_description = match &devices[0].desc {
+                        Some(desc) => {
+                            desc.to_string()
+                        }
+                        None => "Not Available".to_string()
+                    };
+
+                    for device in devices {
+                        if serial == device_number {
+                            device_name = device.name;
+                            device_description = device.desc.unwrap_or(String::from("Device name not available"));
+                        }
+                        serial = serial + 1;
+                    }
+                }
+                Err(err) => {
+                    eprintln!("{:?}",err);
+                }
+            }
+            
+            let cap2 = Capture::from_device(device_name.as_str()).expect("error capturing");
             let mut cap_handle = cap2.promisc(true).snaplen(5000).timeout(10000).open().unwrap();
             let data_links = cap_handle.list_datalinks().expect("could not find");
+            println!("\n=========================================================");
+            println!("Links Available are - ");
             for links in data_links{
-                println!("{:?}",links.get_description());
+                println!("{:?}",links.get_description().unwrap());
             }
+            println!("\n=========================================================");
+            println!("Capturing packets from - {}" ,device_description);
 
             while let Ok(packet) = cap_handle.next() {
                 let data = packet.data.to_owned();
@@ -61,16 +108,18 @@ fn main() {
                 let parsed_packet = packet_parse.parse_packet(data, len, ts);
                 match parsed_packet {
                     Ok(packet) => {
-                        println!("{:?}",packet);
+                        println!("{:?}",packet.headers[1]);
                     },
                     Err(e) => {
-                        self.err_count+=1;
                         println!("{:?},Error Count = {} ", e,self.err_count);
                     }
                 }
             }
         }
 
+        pub fn print_packet(parsed_packet:ParsedPacket){
+            
+        }
     }
     
     //Enumeration for headers of different header types
@@ -360,8 +409,27 @@ fn main() {
 
     }
 
+    let arguments = Cli::parse();
     let capture_packets = CapturePacket::new();
-    capture_packets.print_devices();
-    capture_packets.print_to_console();
-
+    
+    match arguments.arg1 {
+        Some(arg) => {
+            if arg=="list"{
+                capture_packets.print_devices();
+            }
+            else if arg == "capture" {
+                if let Some(device_number) = arguments.arg2.as_deref() {
+                    let number:u8  = device_number.parse().unwrap();
+                    capture_packets.print_to_console(number);
+                }
+                else{
+                    println!("device selected is unavailable");
+                }
+            }
+            else {
+                println!("Invalid arguments try again");
+            }       
+        }
+        None => {print!("No argument given");},
+    }
 }
