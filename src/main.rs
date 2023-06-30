@@ -150,7 +150,7 @@ fn main() {
         pub fn print_packet(&self,parsed_packet:Result<ParsedPacket,String>,packet_no:i64){
             println!("\n===========================================================================================\n");
             
-            print!("\n==================================== Packet no. {} ==========================================\n\n",packet_no);
+            print!("\n==================================== Packet no. {} =======================================\n\n",packet_no);
             
             match parsed_packet {
                 Ok(parsed_packet) => {
@@ -166,7 +166,8 @@ fn main() {
 
         //Function for getting the header information from parsed packet
         pub fn header_information(&self,packet:ParsedPacket) {
-            print!("\n============================== {} ==============\n\n",packet.timestamp);
+            print!("\n============================== Timestamp - {} ==============================\n\n",packet.timestamp);
+
             for header in packet.headers {
                 match header {
                     //Defining action for EthernetFrame header
