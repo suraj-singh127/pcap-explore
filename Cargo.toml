@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.3.9", features = ["derive"] }
+hex = "0.4.3"
 pcap = "0.5"
 pktparse = "0.7.1"
 tls-parser = "0.11.0"
