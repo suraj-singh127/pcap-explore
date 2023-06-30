@@ -115,8 +115,8 @@ fn main() {
             //Once the device ready for Active Capturing we can list datalinks and use them accordingly
             let data_links = cap_handle.list_datalinks().expect("could not find");
             
-            println!("\n===========================================================================================");
-            println!("Links Available are - ");
+            println!("\n===========================================================================================\n");
+            println!("Links Available are - \n");
             for links in data_links{
                 println!("{:?}",links.get_description().unwrap());
             }
@@ -176,6 +176,7 @@ fn main() {
                 match header {
                     //Defining action for EthernetFrame header
                     PacketHeader::Ether(ethernet_frame) => {
+                        println!("----------------- Information from IPV6 Header ------------------");
                         let src = format!("{:02X?}",ethernet_frame.source_mac.0.as_bytes());
                         let dst = format!("{:02X?}",ethernet_frame.dest_mac.0.as_bytes());
                         println!("Source MAC: {}  -----> Destination MAC: {}",&src,&dst);
@@ -188,6 +189,7 @@ fn main() {
                     
                     //For IPv4
                     PacketHeader::IPv4(ipv4_header) => {
+                        println!("------------------ Information from IPV4 Header ------------------");
                         println!("Version - {}  IHL - {}",ipv4_header.version,ipv4_header.ihl);
                         println!("Length - {}   Protocol - {:?}", ipv4_header.length,ipv4_header.protocol);
                         println!("Source Address: {}  -----> Destination Address: {}",ipv4_header.source_addr,ipv4_header.dest_addr);
@@ -195,7 +197,7 @@ fn main() {
 
                     //for IPv6
                     PacketHeader::IPv6(ipv6_header)=> {
-                        
+                        println!("----------------- Information from IPV6 Header -------------------");
                         println!("Version - {}  Hop Limit - {}", ipv6_header.version,ipv6_header.hop_limit);
                         println!("Length - {}   Protocol - {:?}", ipv6_header.length,ipv6_header.next_header);
                         println!("Source Address: {}  -----> Destination Address: {}",ipv6_header.source_addr,ipv6_header.dest_addr);
@@ -204,6 +206,7 @@ fn main() {
                     //For Arp header - if the packet uses ARP protocol
                     PacketHeader::Arp(arp_packet)=> {
                         
+                        println!("----------------- Information from ARP Header --------------------");
                         println!("Hardware Addr Type:{}   Protocol Address Type:{:?}", arp_packet.hw_addr_size,arp_packet.proto_addr_type);
                         println!("Operation: {:?}",arp_packet.operation);
                         println!("Source MAC: {:?}  -----> Destination MAC: {:?}",arp_packet.src_mac,arp_packet.dest_mac);
@@ -211,7 +214,7 @@ fn main() {
 
                     //For printing TCP Header information
                     PacketHeader::Tcp(tcp_header) => {
-                        
+                        println!("----------------- Information from TCP Header ------------------");
                         println!("Source Port: {} -----> Dest Port: {}",tcp_header.source_port,tcp_header.dest_port);
                         println!("Sequence No: {}   Ack No: {}",tcp_header.sequence_no,tcp_header.ack_no);
                         println!("FLAGS -   ACK: {}   FIN: {}   PSH: {}    RST: {}    SYN: {}   URG:{}",
@@ -223,6 +226,7 @@ fn main() {
 
                     //For printing UDP Header information
                     PacketHeader::UDP(udp_header) => {
+                        println!("----------------- Information from UDP Header ------------------");
                         println!("Source Port: {} -----> Dest Port: {}",udp_header.source_port,udp_header.dest_port);
                         println!("Length: {}    Checksum: {}",udp_header.length,udp_header.checksum);
                     }
@@ -520,9 +524,11 @@ fn main() {
                         TlsMessage::ChangeCipherSpec => {
                             parsed_packet.headers.push(PacketHeader::Tls(TlsType::ChangeCipherSpec));
                         },
+                        //
                         TlsMessage::Heartbeat(_) => {
                             parsed_packet.headers.push(PacketHeader::Tls(TlsType::Heartbeat));
                         },
+                        //
                         TlsMessage::Alert(_) => {
                             parsed_packet.headers.push(PacketHeader::Tls(TlsType::Alert));
                         }
@@ -571,6 +577,10 @@ fn main() {
                     println!("device selected is unavailable");
                 }
             }
+            else if arg== "save"{
+
+            }
+
             //in case of invalid arguments
             else {
                 println!("Invalid arguments try again");
