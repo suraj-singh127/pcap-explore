@@ -1,4 +1,4 @@
-use pcap::{Device, Capture};
+use pcap::{Device, Capture, Active};
 use pktparse::{*, tcp::TcpHeader, udp::UdpHeader, ipv4::IPv4Header, ipv6::IPv6Header, arp::ArpPacket, ethernet::{EtherType, EthernetFrame, MacAddress}, ip::IPProtocol};
 use tls_parser::{TlsMessage, nom::{AsBytes}};
 use clap::{Parser};
@@ -114,8 +114,7 @@ fn main() {
 
             //Once the device ready for Active Capturing we can list datalinks and use them accordingly
             let data_links = cap_handle.list_datalinks().expect("could not find");
-            let symbol = "*";
-            let width = 500;
+            
             println!("\n===========================================================================================");
             println!("Links Available are - ");
             for links in data_links{
@@ -143,7 +142,12 @@ fn main() {
                 let parsed_packet = packet_parse.parse_packet(data, len, ts);
                 self.print_packet(parsed_packet,packet_no);
                 packet_no = packet_no + 1;
+                if packet_no > 100 {break;}
             }
+
+            let filename = "captured.pcap";
+            self.save_as_file(cap_handle, filename)
+
         }
 
         //Printing individual packets to console
@@ -231,6 +235,22 @@ fn main() {
             flag as u8
         }
         
+        pub fn save_as_file(&self,mut capture_handle:Capture<Active>,filename: &str){
+            let mut packet_no = 1;
+            match capture_handle.savefile(&filename) {
+                Ok(mut save_file) => {
+                    while let Ok(packet) = capture_handle.next() {
+                        save_file.write(&packet);
+                        packet_no = packet_no + 1;
+                        if packet_no > 100 { break; }
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error - {:?}", e);
+                }
+            }
+        }
+
     }
     
     //Enumeration for headers of different header types
