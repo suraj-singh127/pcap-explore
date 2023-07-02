@@ -1,4 +1,5 @@
 /target
 /.vscode
 /.vs
-/captured.pcap
+.pcap
+/captures

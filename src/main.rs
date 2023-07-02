@@ -1,5 +1,7 @@
 use pcap::{Device, Capture, Active};
-use pktparse::{*, tcp::TcpHeader, udp::UdpHeader, ipv4::IPv4Header, ipv6::IPv6Header, arp::ArpPacket, ethernet::{EtherType, EthernetFrame, MacAddress}, ip::IPProtocol};
+use pktparse::{*, tcp::TcpHeader, udp::UdpHeader, ipv4::IPv4Header, ipv6::IPv6Header, arp::ArpPacket};
+use pktparse::{ip::IPProtocol};
+use pktparse::{ethernet::{EtherType,EthernetFrame}};
 use tls_parser::{TlsMessage, nom::{AsBytes}};
 use clap::{Parser};
 
@@ -16,18 +18,23 @@ fn main() {
         arg1 : Option<String>,
         arg2 : Option<String>,
         arg3 : Option<String>,
+        arg4 : Option<String>,
     }
-
-    pub struct CapturePacket {
-        err_count: u64,
-    }
+    
+    
+    //Declaring CapturePaceket
+    pub struct CapturePacket {}
 
     //Implementing the CapturePacket struct
     impl CapturePacket {
         pub fn new() -> CapturePacket {
-            CapturePacket { err_count: 0 }
+            CapturePacket {  }
         }
         
+        pub fn print_error_function(&self, error:String){
+            eprintln!("Error - {:?}",error);
+        }
+
         pub fn print_devices(&self) {
             //Get the list of interface devices found in the form of Result type
             let list = Device::list();
@@ -53,14 +60,16 @@ fn main() {
                     }
                 }
                 //if an error occurs
-                Err(error) => println!("Error: {}", error),
+                Err(err) => {
+                    self.print_error_function(err.to_string());
+                }
             }
             println!("\n=======================================================");
             println!("To capture packets from a device - cargo run capture [device_serial number]");
         }
 
         //Takes the serial number of the device in form of unsigned 8 bit unsigned integer 0-255
-        pub fn print_to_console(&self , device_number:u8) {
+        pub fn print_to_console(&self , device_number:u8 , argument:String, filename:&str) {
 
             let mut device_name = String::from("");
             let mut device_description = "".to_string();
@@ -125,28 +134,31 @@ fn main() {
             
             //For counting the number of packets
             let mut packet_no:i64 = 1;
-
-            //Now we can traverse over the captured packets by calling active capture handles .next() function            
-            while let Ok(packet) = cap_handle.next() {
-                let data = packet.data.to_owned();
-                let len = packet.header.len;
-
-                //Formaitng the timestamps to be shown upto 6 digit of decimal 
-                let ts: String = format!(
-                    "{}.{:06}",
-                    &packet.header.ts.tv_sec, &packet.header.ts.tv_usec
-                );
-
-                //Creating a new instance of Parsed Packet
-                let packet_parse = ParsedPacket::new();
-                let parsed_packet = packet_parse.parse_packet(data, len, ts);
-                self.print_packet(parsed_packet,packet_no);
-                packet_no = packet_no + 1;
-                if packet_no > 100 {break;}
+            if argument == "capture"{
+                //Now we can traverse over the captured packets by calling active capture handles .next() function            
+                while let Ok(packet) = cap_handle.next() {
+                    let data = packet.data.to_owned();
+                    let len = packet.header.len;
+    
+                    //Formaitng the timestamps to be shown upto 6 digit of decimal 
+                    let ts: String = format!(
+                        "{}.{:06}",
+                        &packet.header.ts.tv_sec, &packet.header.ts.tv_usec
+                    );
+    
+                    //Creating a new instance of Parsed Packet
+                    let packet_parse = ParsedPacket::new();
+                    let parsed_packet = packet_parse.parse_packet(data, len, ts);
+                    self.print_packet(parsed_packet,packet_no);
+                    packet_no = packet_no + 1;
+                    if packet_no>100 {
+                        break;
+                    }
+                }
             }
-
-            let filename = "captured.pcap";
-            self.save_as_file(cap_handle, filename)
+            else {
+                self.save_as_file(cap_handle, filename);
+            }
 
         }
 
@@ -176,7 +188,7 @@ fn main() {
                 match header {
                     //Defining action for EthernetFrame header
                     PacketHeader::Ether(ethernet_frame) => {
-                        println!("----------------- Information from IPV6 Header ------------------");
+                        println!("----------------- Information from Ethernet Frame ------------------");
                         let src = format!("{:02X?}",ethernet_frame.source_mac.0.as_bytes());
                         let dst = format!("{:02X?}",ethernet_frame.dest_mac.0.as_bytes());
                         println!("Source MAC: {}  -----> Destination MAC: {}",&src,&dst);
@@ -557,6 +569,7 @@ fn main() {
     match arguments.arg1 {
         Some(arg) => {
             //If the first argument is list
+            println!("{}" , arg);
             if arg=="list"{
                 capture_packets.print_devices();
             }
@@ -570,17 +583,31 @@ fn main() {
 
                     //if the number passed is out of range or not matching
                     //Default or 0th device will be selected automatically
-                    capture_packets.print_to_console(number);
+                    capture_packets.print_to_console(number,"capture".to_string(),"");
                 }
                 else{
                     //If no serial is provided
                     println!("device selected is unavailable");
                 }
             }
-            else if arg== "save"{
+            else if arg == "save"{
+                println!("Inside save block");
 
+                if let Some(device_no) = arguments.arg2.as_deref(){
+
+                    //Same thing done as above
+                    let number:u8  = device_no.parse().unwrap();
+                    if let Some(filename) = arguments.arg3.as_deref() {
+                        println!("Saving to file path - {}",filename);
+                        //Calling print to console with save argument
+                        capture_packets.print_to_console(number, "save".to_string(), filename);
+                    }
+                    else{
+                        println!("No filepath provided")
+                    }
+
+                }
             }
-
             //in case of invalid arguments
             else {
                 println!("Invalid arguments try again");
