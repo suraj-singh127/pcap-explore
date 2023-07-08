@@ -151,7 +151,7 @@ fn main() {
                     let parsed_packet = packet_parse.parse_packet(data, len, ts);
                     self.print_packet(parsed_packet,packet_no);
                     packet_no = packet_no + 1;
-                    if packet_no>100 {
+                    if packet_no > 1000 {
                         break;
                     }
                 }
