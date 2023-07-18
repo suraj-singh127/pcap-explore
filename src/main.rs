@@ -20,7 +20,6 @@ fn main() {
         arg4 : Option<String>,
     }
     
-    
     //Declaring CapturePaceket
     pub struct CapturePacket {}
 
@@ -280,8 +279,9 @@ fn main() {
     //Creating an instance of Cli for parsing arguments
     let arguments = Cli::parse();
 
-    //Creating a new instance of CapturePacket
+    // Creating a new instance of CapturePacket
     let capture_packets = CapturePacket::new();
+
     
     //Matching arguments with the provided arguments
     match arguments.arg1 {
